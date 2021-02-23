@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	. "gopkg.in/check.v1"
+	. "github.com/tokentransfer/check"
 )
 
 type JingtumSuite struct{}
@@ -13,10 +13,9 @@ type JingtumSuite struct{}
 func Test_Jingtum(t *testing.T) {
 	s := Suite(&JingtumSuite{})
 	TestingRun(t, s)
-	// TestingT(t)
 }
 
-func (s *JingtumSuite) TestAccount(c *C) {
+func (suite *JingtumSuite) TestAccount(c *C) {
 	// s := "snoPBjXtMeMyMHUVTgbuqAfg1SUTb" //jHb9CJAWyB4jr91VRWn96DkukG4bwdtyTh
 	s := "snxT8kKatzLzLZHAdYcwbVQJc79vN" //jngGY9W1F2Ky8wCzeHTahbtxjadU9wNFRz
 	k := &Key{}

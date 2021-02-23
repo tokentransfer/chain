@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "gopkg.in/check.v1"
+	. "github.com/tokentransfer/check"
 )
 
 type TransactionSuite struct{}
@@ -12,7 +12,6 @@ type TransactionSuite struct{}
 func Test_Transaction(t *testing.T) {
 	s := Suite(&TransactionSuite{})
 	TestingRun(t, s)
-	// TestingT(t)
 }
 
 func (suite *TransactionSuite) TestWithDataBlob(c *C) {

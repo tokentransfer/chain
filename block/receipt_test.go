@@ -3,7 +3,7 @@ package block
 import (
 	"testing"
 
-	. "gopkg.in/check.v1"
+	. "github.com/tokentransfer/check"
 )
 
 type ReceiptSuite struct{}
@@ -11,5 +11,4 @@ type ReceiptSuite struct{}
 func Test_Receipt(t *testing.T) {
 	s := Suite(&ReceiptSuite{})
 	TestingRun(t, s)
-	// TestingT(t)
 }

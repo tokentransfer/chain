@@ -6,9 +6,9 @@ import (
 
 	"github.com/tokentransfer/chain/account"
 
+	. "github.com/tokentransfer/check"
 	libblock "github.com/tokentransfer/interfaces/block"
 	libcore "github.com/tokentransfer/interfaces/core"
-	. "gopkg.in/check.v1"
 )
 
 type StateSuite struct{}
@@ -16,7 +16,6 @@ type StateSuite struct{}
 func Test_State(t *testing.T) {
 	s := Suite(&StateSuite{})
 	TestingRun(t, s)
-	// TestingT(t)
 }
 
 func (suite *StateSuite) TestState(c *C) {

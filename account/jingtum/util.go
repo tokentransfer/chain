@@ -1,4 +1,4 @@
-package ecdsa
+package jingtum
 
 import (
 	"crypto/sha256"

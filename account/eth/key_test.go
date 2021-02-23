@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "gopkg.in/check.v1"
-
-	"github.com/tokentransfer/chain/crypto"
+	. "github.com/tokentransfer/check"
+	libcore "github.com/tokentransfer/interfaces/core"
 )
 
 type KeySuite struct{}
@@ -16,7 +15,6 @@ type KeySuite struct{}
 func Test_Key(t *testing.T) {
 	s := Suite(&KeySuite{})
 	TestingRun(t, s)
-	// TestingT(t)
 }
 
 func (suite *KeySuite) TestRandom(c *C) {
@@ -98,14 +96,15 @@ func (suite *KeySuite) TestSignAndVerify(c *C) {
 	msg, err := hex.DecodeString(msgBlob)
 	c.Assert(err, IsNil)
 
-	cryptoService := &crypto.CryptoService{}
-	h, err := cryptoService.Hash(msg)
+	h := make([]byte, 32)
+	n, err := rand.Read(h)
 	c.Assert(err, IsNil)
+	c.Assert(n, Equals, 32)
 
 	k, err := GenerateFamilySeed("masterpassphrase")
 	c.Assert(err, IsNil)
 
-	fmt.Println("hash", h.String())
+	fmt.Println("hash", libcore.Hash(h).String())
 	sig, err := k.Sign(h, msg)
 	c.Assert(err, IsNil)
 

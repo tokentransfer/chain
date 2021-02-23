@@ -1,4 +1,4 @@
-package ecdsa
+package jingtum
 
 import (
 	"encoding/binary"

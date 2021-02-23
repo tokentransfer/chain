@@ -8,8 +8,8 @@ import (
 	"github.com/tokentransfer/chain/account"
 	"github.com/tokentransfer/chain/crypto"
 
+	. "github.com/tokentransfer/check"
 	libblock "github.com/tokentransfer/interfaces/block"
-	. "gopkg.in/check.v1"
 )
 
 type BlockSuite struct{}
@@ -17,7 +17,6 @@ type BlockSuite struct{}
 func Test_Block(t *testing.T) {
 	s := Suite(&BlockSuite{})
 	TestingRun(t, s)
-	// TestingT(t)
 }
 
 func (s *BlockSuite) TestBlob(c *C) {
