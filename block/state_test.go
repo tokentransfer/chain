@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/skywell/skywell-go/util"
-
 	"github.com/tokentransfer/chain/account"
 
 	libblock "github.com/tokentransfer/interfaces/block"
@@ -37,7 +35,7 @@ func (suite *StateSuite) TestState(c *C) {
 		Sequence: uint64(1),
 		Amount:   int64(100),
 	}
-	util.PrintJSON("state", s1)
+	// util.PrintJSON("state", s1)
 
 	s2 := &AccountState{
 		State: State{
@@ -48,12 +46,12 @@ func (suite *StateSuite) TestState(c *C) {
 		Sequence: uint64(1),
 		Amount:   int64(100),
 	}
-	util.PrintJSON("state", s2)
+	// util.PrintJSON("state", s2)
 
 	state := &Receipt{
 		States: []libblock.State{s1, s2},
 	}
-	util.PrintJSON("state", state)
+	// util.PrintJSON("state", state)
 
 	sbs, err := state.MarshalBinary()
 	if err != nil {
@@ -64,6 +62,6 @@ func (suite *StateSuite) TestState(c *C) {
 	if err != nil {
 		panic(err)
 	}
-	util.PrintJSON("state", s)
+	// util.PrintJSON("state", s)
 	fmt.Println("hex", libcore.EncodeToString(sbs))
 }

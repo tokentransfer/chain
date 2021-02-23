@@ -2,16 +2,11 @@ package block
 
 import (
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"log"
 	"testing"
 
-	"github.com/skywell/skywell-go/util"
 	"github.com/tokentransfer/chain/account"
-	"github.com/tokentransfer/chain/core"
 	"github.com/tokentransfer/chain/crypto"
-	"github.com/tokentransfer/chain/node"
 
 	libblock "github.com/tokentransfer/interfaces/block"
 	. "gopkg.in/check.v1"
@@ -69,102 +64,4 @@ func generateTransaction(seq uint64, value int64, gas int64) *Transaction {
 	service.Sign(fromKey, tx)
 
 	return tx
-}
-
-func (suite *BlockSuite) TestBlock(c *C) {
-	cryptoService := &crypto.CryptoService{}
-
-	config, err := core.NewConfig("localhost", 7001)
-	if err != nil {
-		panic(err)
-	}
-
-	merkleService := &node.MerkleService{
-		CryptoService: cryptoService,
-	}
-	err = merkleService.Init(config)
-	if err != nil {
-		panic(err)
-	}
-	consensusService := &node.ConsensusService{
-		CryptoService: cryptoService,
-		MerkleService: merkleService,
-	}
-
-	genesis, err := consensusService.GenerateBlock(nil)
-	if err != nil {
-		panic(err)
-	}
-	util.PrintJSON("genesis", genesis)
-
-	_, err = consensusService.VerifyBlock(genesis)
-	if err != nil {
-		panic(err)
-	}
-	err = consensusService.AddBlock(genesis)
-	if err != nil {
-		panic(err)
-	}
-
-	tx1 := generateTransaction(1, 100, 10)
-	ok, err := merkleService.VerifyTransaction(tx1)
-	if err != nil {
-		panic(err)
-	}
-	if !ok {
-		panic(errors.New("error transaction"))
-	}
-	tx1WithData, err := merkleService.ProcessTransaction(tx1)
-	if err != nil {
-		panic(err)
-	}
-	err = merkleService.PutTransaction(tx1WithData)
-	if err != nil {
-		panic(err)
-	}
-
-	tx2 := generateTransaction(2, 200, 10)
-	ok, err = merkleService.VerifyTransaction(tx2)
-	if err != nil {
-		panic(err)
-	}
-	if !ok {
-		panic(errors.New("error transaction"))
-	}
-	tx2WithData, err := merkleService.ProcessTransaction(tx2)
-	if err != nil {
-		panic(err)
-	}
-	err = merkleService.PutTransaction(tx2WithData)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("transaction root", merkleService.GetTransactionRoot())
-	fmt.Println("receipt root", merkleService.GetReceiptRoot())
-
-	err = merkleService.Cancel()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("transaction root", merkleService.GetTransactionRoot())
-	fmt.Println("receipt root", merkleService.GetReceiptRoot())
-
-	block1, err := consensusService.GenerateBlock([]libblock.TransactionWithData{
-		tx1WithData,
-		tx2WithData,
-	})
-	if err != nil {
-		panic(err)
-	}
-	util.PrintJSON("block 1", block1)
-
-	_, err = consensusService.VerifyBlock(block1)
-	if err != nil {
-		panic(err)
-	}
-	err = consensusService.AddBlock(block1)
-	if err != nil {
-		panic(err)
-	}
 }
