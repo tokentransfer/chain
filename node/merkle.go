@@ -132,7 +132,7 @@ func (service *MerkleService) PutReceipt(r libblock.Receipt) error {
 		}
 	}
 
-	h, data, err := cs.Raw(r)
+	h, data, err := cs.Raw(r, libcrypto.RawBinary)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (service *MerkleService) GetReceiptByTransactionHash(h libcore.Hash) (libbl
 func (service *MerkleService) PutState(s libblock.State) error {
 	cs := service.CryptoService
 
-	h, data, err := cs.Raw(s)
+	h, data, err := cs.Raw(s, libcrypto.RawBinary)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (service *MerkleService) GetReceiptRoot() libcore.Hash {
 func (service *MerkleService) PutTransaction(txWithData libblock.TransactionWithData) error {
 	cs := service.CryptoService
 
-	h, data, err := cs.Raw(txWithData)
+	h, data, err := cs.Raw(txWithData, libcrypto.RawBinary)
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func (service *MerkleService) PutTransaction(txWithData libblock.TransactionWith
 		return err
 	}
 
-	txHash, _, err := cs.Raw(txWithData.GetTransaction())
+	txHash, _, err := cs.Raw(txWithData.GetTransaction(), libcrypto.RawBinary)
 	txKey := getHashKey("transaction", txHash)
 	err = service.im.PutData([]byte(txKey), h)
 	if err != nil {
@@ -310,7 +310,7 @@ func (service *MerkleService) GetTransactionRoot() libcore.Hash {
 func (service *MerkleService) PutBlock(b libblock.Block) error {
 	cs := service.CryptoService
 
-	h, data, err := cs.Raw(b)
+	h, data, err := cs.Raw(b, libcrypto.RawBinary)
 	if err != nil {
 		return err
 	}

@@ -133,6 +133,50 @@ func (b *Block) MarshalBinary() ([]byte, error) {
 	return core.Marshal(block)
 }
 
+func (b *Block) Raw(ignoreSigningFields bool) ([]byte, error) {
+	block := &pb.Block{
+		BlockIndex:      b.BlockIndex,
+		ParentHash:      []byte(b.ParentHash),
+		TransactionHash: []byte(b.TransactionHash),
+		ReceiptHash:     []byte(b.ReceiptHash),
+		Timestamp:       b.Timestamp,
+	}
+
+	l := len(b.Transactions)
+	transactions := make([]*pb.TransactionWithData, l)
+	for i := 0; i < l; i++ {
+		tx := b.Transactions[i]
+		data, err := tx.Raw(ignoreSigningFields)
+		if err != nil {
+			return nil, err
+		}
+		_, msg, err := core.Unmarshal(data)
+		if err != nil {
+			return nil, err
+		}
+		transactions[i] = msg.(*pb.TransactionWithData)
+	}
+	block.Transactions = transactions
+
+	l = len(b.Receipts)
+	receipts := make([]*pb.Receipt, l)
+	for i := 0; i < l; i++ {
+		r := b.Receipts[i]
+		data, err := r.Raw(ignoreSigningFields)
+		if err != nil {
+			return nil, err
+		}
+		_, msg, err := core.Unmarshal(data)
+		if err != nil {
+			return nil, err
+		}
+		receipts[i] = msg.(*pb.Receipt)
+	}
+	block.Receipts = receipts
+
+	return core.Marshal(block)
+}
+
 func (b *Block) GetParentHash() libcore.Hash {
 	return libcore.Hash(b.ParentHash)
 }

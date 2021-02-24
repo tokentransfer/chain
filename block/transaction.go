@@ -112,7 +112,7 @@ func (tx *Transaction) MarshalBinary() ([]byte, error) {
 	return core.Marshal(t)
 }
 
-func (tx *Transaction) Raw() ([]byte, error) {
+func (tx *Transaction) Raw(ignoreSigningFields bool) ([]byte, error) {
 	fromData, err := addressToByte(tx.Account)
 	if err != nil {
 		return nil, err
@@ -122,18 +122,21 @@ func (tx *Transaction) Raw() ([]byte, error) {
 		return nil, err
 	}
 
-	t := &pb.Transaction{
-		TransactionType: uint32(tx.TransactionType),
+	if ignoreSigningFields {
+		t := &pb.Transaction{
+			TransactionType: uint32(tx.TransactionType),
 
-		Account:     fromData,
-		Sequence:    tx.Sequence,
-		Amount:      tx.Amount,
-		Gas:         tx.Gas,
-		Destination: toData,
-		Payload:     tx.Payload,
-		PublicKey:   []byte(tx.PublicKey),
+			Account:     fromData,
+			Sequence:    tx.Sequence,
+			Amount:      tx.Amount,
+			Gas:         tx.Gas,
+			Destination: toData,
+			Payload:     tx.Payload,
+			PublicKey:   []byte(tx.PublicKey),
+		}
+		return core.Marshal(t)
 	}
-	return core.Marshal(t)
+	return tx.MarshalBinary()
 }
 
 func (tx *Transaction) GetTransactionType() libblock.TransactionType {
@@ -230,6 +233,38 @@ func (txWithData *TransactionWithData) MarshalBinary() ([]byte, error) {
 	tx := msg.(*pb.Transaction)
 
 	receiptData, err := txWithData.Receipt.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	_, msg, err = core.Unmarshal(receiptData)
+	if err != nil {
+		return nil, err
+	}
+	receipt := msg.(*pb.Receipt)
+
+	td := &pb.TransactionWithData{
+		Transaction: tx,
+		Receipt:     receipt,
+	}
+	data, err := core.Marshal(td)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func (txWithData *TransactionWithData) Raw(ignoreSigningFields bool) ([]byte, error) {
+	txData, err := txWithData.Transaction.Raw(ignoreSigningFields)
+	if err != nil {
+		return nil, err
+	}
+	_, msg, err := core.Unmarshal(txData)
+	if err != nil {
+		return nil, err
+	}
+	tx := msg.(*pb.Transaction)
+
+	receiptData, err := txWithData.Receipt.Raw(ignoreSigningFields)
 	if err != nil {
 		return nil, err
 	}

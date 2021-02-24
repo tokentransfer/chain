@@ -37,6 +37,7 @@ func (r *Receipt) UnmarshalBinary(data []byte) error {
 	}
 	receipt := msg.(*pb.Receipt)
 	r.TransactionResult = libblock.TransactionResult(receipt.TransactionResult)
+	r.TransactionIndex = receipt.TransactionIndex
 
 	list := receipt.GetStates()
 	l := len(list)
@@ -67,6 +68,25 @@ func (r *Receipt) MarshalBinary() ([]byte, error) {
 	}
 	receipt := &pb.Receipt{
 		TransactionResult: uint32(r.TransactionResult),
+		TransactionIndex:  r.TransactionIndex,
+		States:            states,
+	}
+	return core.Marshal(receipt)
+}
+
+func (r *Receipt) Raw(ignoreSigningFields bool) ([]byte, error) {
+	l := len(r.States)
+	states := make([][]byte, l)
+	for i := 0; i < l; i++ {
+		state := r.States[i]
+		data, err := state.Raw(ignoreSigningFields)
+		if err != nil {
+			return nil, err
+		}
+		states[i] = data
+	}
+	receipt := &pb.Receipt{
+		TransactionResult: uint32(r.TransactionResult),
 		States:            states,
 	}
 	return core.Marshal(receipt)
@@ -74,6 +94,10 @@ func (r *Receipt) MarshalBinary() ([]byte, error) {
 
 func (r *Receipt) GetTransactionIndex() uint32 {
 	return r.TransactionIndex
+}
+
+func (r *Receipt) SetTransactionIndex(index uint32) {
+	r.TransactionIndex = index
 }
 
 func (r *Receipt) GetTransactionResult() libblock.TransactionResult {

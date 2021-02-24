@@ -34,6 +34,10 @@ func (s *State) GetBlockIndex() uint64 {
 	return s.BlockIndex
 }
 
+func (s *State) SetBlockIndex(index uint64) {
+	s.BlockIndex = index
+}
+
 type AccountState struct {
 	State
 
@@ -72,6 +76,7 @@ func (s *AccountState) UnmarshalBinary(data []byte) error {
 	}
 
 	s.StateType = libblock.StateType(core.CORE_ACCOUNT_STATE)
+	s.BlockIndex = state.BlockIndex
 	s.Account = account
 	s.Sequence = state.Sequence
 	s.Amount = state.Amount
@@ -79,6 +84,21 @@ func (s *AccountState) UnmarshalBinary(data []byte) error {
 }
 
 func (s *AccountState) MarshalBinary() ([]byte, error) {
+	a, err := s.Account.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	return core.Marshal(&pb.AccountState{
+		StateType:  uint32(core.CORE_ACCOUNT_STATE),
+		BlockIndex: s.BlockIndex,
+		Account:    a,
+		Sequence:   s.Sequence,
+		Amount:     s.Amount,
+	})
+}
+
+func (s *AccountState) Raw(ignoreSigningFields bool) ([]byte, error) {
 	a, err := s.Account.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -129,6 +149,7 @@ func (s *CurrencyState) UnmarshalBinary(data []byte) error {
 	}
 
 	s.StateType = libblock.StateType(core.CORE_CURRENCY_STATE)
+	s.BlockIndex = state.BlockIndex
 	s.Account = issuer
 	s.Sequence = state.Sequence
 	s.Name = state.Name
@@ -140,6 +161,24 @@ func (s *CurrencyState) UnmarshalBinary(data []byte) error {
 }
 
 func (s *CurrencyState) MarshalBinary() ([]byte, error) {
+	issuer, err := s.Account.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	return core.Marshal(&pb.CurrencyState{
+		StateType:   uint32(core.CORE_CURRENCY_STATE),
+		BlockIndex:  s.BlockIndex,
+		Account:     issuer,
+		Sequence:    s.Sequence,
+		Name:        s.Name,
+		Symbol:      s.Symbol,
+		Decimals:    s.Decimals,
+		TotalSupply: s.TotalSupply,
+	})
+}
+
+func (s *CurrencyState) Raw(ignoreSigningFields bool) ([]byte, error) {
 	issuer, err := s.Account.MarshalBinary()
 	if err != nil {
 		return nil, err
