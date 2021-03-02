@@ -73,7 +73,7 @@ type MerkleService struct {
 	im libnode.MerkleTree // index -> hash
 	bm libnode.MerkleTree // block
 	tm libnode.MerkleTree // transaction
-	rm libnode.MerkleTree // receipt
+	sm libnode.MerkleTree // state
 
 	CryptoService *crypto.CryptoService
 }
@@ -102,12 +102,12 @@ func (service *MerkleService) Init(c libcore.Config) error {
 	}
 	service.tm = NewMerkleTree(service.CryptoService, txdb)
 
-	receiptdb := &store.LevelService{Name: "receipt"}
-	err = receiptdb.Init(c)
+	statedb := &store.LevelService{Name: "state"}
+	err = statedb.Init(c)
 	if err != nil {
 		return err
 	}
-	service.rm = NewMerkleTree(service.CryptoService, receiptdb)
+	service.sm = NewMerkleTree(service.CryptoService, statedb)
 	return nil
 }
 
@@ -119,51 +119,6 @@ func (service *MerkleService) Close() error {
 	return nil
 }
 
-func (service *MerkleService) PutReceipt(r libblock.Receipt) error {
-	cs := service.CryptoService
-
-	states := r.GetStates()
-	l := len(states)
-	for i := 0; i < l; i++ {
-		s := states[i]
-		err := service.PutState(s)
-		if err != nil {
-			return err
-		}
-	}
-
-	h, data, err := cs.Raw(r, libcrypto.RawBinary)
-	if err != nil {
-		return err
-	}
-	err = service.rm.PutData(h, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (service *MerkleService) GetReceipt(h libcore.Hash) (libblock.Receipt, error) {
-	data, err := service.rm.GetData(h)
-	if err != nil {
-		return nil, err
-	}
-	r := &block.Receipt{}
-	err = r.UnmarshalBinary(data)
-	if err != nil {
-		return nil, err
-	}
-	return r, nil
-}
-
-func (service *MerkleService) GetReceiptByTransactionHash(h libcore.Hash) (libblock.Receipt, error) {
-	txWithData, err := service.GetTransactionByHash(h)
-	if err != nil {
-		return nil, err
-	}
-	return txWithData.GetReceipt(), nil
-}
-
 func (service *MerkleService) PutState(s libblock.State) error {
 	cs := service.CryptoService
 
@@ -171,7 +126,7 @@ func (service *MerkleService) PutState(s libblock.State) error {
 	if err != nil {
 		return err
 	}
-	err = service.rm.PutData(h, data)
+	err = service.sm.PutData(h, data)
 	if err != nil {
 		return err
 	}
@@ -193,7 +148,7 @@ func (service *MerkleService) PutState(s libblock.State) error {
 }
 
 func (service *MerkleService) GetState(h libcore.Hash) (libblock.State, error) {
-	data, err := service.rm.GetData(h)
+	data, err := service.sm.GetData(h)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +178,8 @@ func (service *MerkleService) GetStateByKey(key string) (libblock.State, error) 
 	return service.GetState(libcore.Hash(h))
 }
 
-func (service *MerkleService) GetReceiptRoot() libcore.Hash {
-	return service.rm.GetRoot()
+func (service *MerkleService) GetStateRoot() libcore.Hash {
+	return service.sm.GetRoot()
 }
 
 func (service *MerkleService) PutTransaction(txWithData libblock.TransactionWithData) error {
@@ -254,12 +209,6 @@ func (service *MerkleService) PutTransaction(txWithData libblock.TransactionWith
 	indexKey := getIndexKey(address, txWithData.GetTransaction().GetIndex())
 	accountKey := getNameKey("transaction", indexKey)
 	err = service.im.PutData([]byte(accountKey), h)
-	if err != nil {
-		return err
-	}
-
-	r := txWithData.GetReceipt()
-	err = service.PutReceipt(r)
 	if err != nil {
 		return err
 	}
@@ -333,6 +282,16 @@ func (service *MerkleService) PutBlock(b libblock.Block) error {
 			return err
 		}
 	}
+
+	states := b.GetStates()
+	l = len(states)
+	for i := 0; i < l; i++ {
+		s := states[i]
+		err := service.PutState(s)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -372,7 +331,7 @@ func (service *MerkleService) Commit() error {
 	if err != nil {
 		return err
 	}
-	err = service.rm.Commit()
+	err = service.sm.Commit()
 	if err != nil {
 		return err
 	}
@@ -392,7 +351,7 @@ func (service *MerkleService) Cancel() error {
 	if err != nil {
 		return err
 	}
-	err = service.rm.Cancel()
+	err = service.sm.Cancel()
 	if err != nil {
 		return err
 	}

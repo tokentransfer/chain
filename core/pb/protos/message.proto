@@ -7,11 +7,11 @@ message Block {
     uint64 BlockIndex       = 1;
     bytes ParentHash        = 2;
     bytes TransactionHash   = 3;
-    bytes ReceiptHash       = 4;
+    bytes StateHash       = 4;
     int64 Timestamp         = 5;
 
     repeated TransactionWithData    Transactions    = 6;
-    repeated Receipt        Receipts                = 7;
+    repeated bytes            States                = 7;
 }
 
 message Transaction {

@@ -17,11 +17,11 @@ type Block struct {
 	BlockIndex      uint64
 	ParentHash      libcore.Hash
 	TransactionHash libcore.Hash
-	ReceiptHash     libcore.Hash
+	StateHash       libcore.Hash
 	Timestamp       int64
 
 	Transactions []libblock.TransactionWithData
-	Receipts     []libblock.Receipt
+	States       []libblock.State
 }
 
 func (b *Block) GetIndex() uint64 {
@@ -49,7 +49,7 @@ func (b *Block) UnmarshalBinary(data []byte) error {
 	b.BlockIndex = block.BlockIndex
 	b.ParentHash = libcore.Hash(block.ParentHash)
 	b.TransactionHash = libcore.Hash(block.TransactionHash)
-	b.ReceiptHash = libcore.Hash(block.ReceiptHash)
+	b.StateHash = libcore.Hash(block.StateHash)
 	b.Timestamp = block.Timestamp
 
 	l := len(block.Transactions)
@@ -70,21 +70,18 @@ func (b *Block) UnmarshalBinary(data []byte) error {
 	}
 	b.Transactions = transactions
 
-	l = len(block.Receipts)
-	receipts := make([]libblock.Receipt, l)
+	l = len(block.States)
+	states := make([]libblock.State, l)
 	for i := 0; i < l; i++ {
-		data, err := core.Marshal(block.Receipts[i])
+		data := block.States[i]
+		state, err := ReadState(data)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
-		r := &Receipt{}
-		err = r.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		receipts[i] = r
+		states[i] = state
 	}
-	b.Receipts = receipts
+	b.States = states
 
 	return nil
 }
@@ -94,7 +91,7 @@ func (b *Block) MarshalBinary() ([]byte, error) {
 		BlockIndex:      b.BlockIndex,
 		ParentHash:      []byte(b.ParentHash),
 		TransactionHash: []byte(b.TransactionHash),
-		ReceiptHash:     []byte(b.ReceiptHash),
+		StateHash:       []byte(b.StateHash),
 		Timestamp:       b.Timestamp,
 	}
 
@@ -114,21 +111,17 @@ func (b *Block) MarshalBinary() ([]byte, error) {
 	}
 	block.Transactions = transactions
 
-	l = len(b.Receipts)
-	receipts := make([]*pb.Receipt, l)
+	l = len(b.States)
+	states := make([][]byte, l)
 	for i := 0; i < l; i++ {
-		r := b.Receipts[i]
-		data, err := r.MarshalBinary()
+		state := b.States[i]
+		data, err := state.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		_, msg, err := core.Unmarshal(data)
-		if err != nil {
-			return nil, err
-		}
-		receipts[i] = msg.(*pb.Receipt)
+		states[i] = data
 	}
-	block.Receipts = receipts
+	block.States = states
 
 	return core.Marshal(block)
 }
@@ -138,7 +131,7 @@ func (b *Block) Raw(ignoreSigningFields bool) ([]byte, error) {
 		BlockIndex:      b.BlockIndex,
 		ParentHash:      []byte(b.ParentHash),
 		TransactionHash: []byte(b.TransactionHash),
-		ReceiptHash:     []byte(b.ReceiptHash),
+		StateHash:       []byte(b.StateHash),
 		Timestamp:       b.Timestamp,
 	}
 
@@ -158,21 +151,17 @@ func (b *Block) Raw(ignoreSigningFields bool) ([]byte, error) {
 	}
 	block.Transactions = transactions
 
-	l = len(b.Receipts)
-	receipts := make([]*pb.Receipt, l)
+	l = len(b.States)
+	states := make([][]byte, l)
 	for i := 0; i < l; i++ {
-		r := b.Receipts[i]
-		data, err := r.Raw(ignoreSigningFields)
+		state := b.States[i]
+		data, err := state.Raw(ignoreSigningFields)
 		if err != nil {
 			return nil, err
 		}
-		_, msg, err := core.Unmarshal(data)
-		if err != nil {
-			return nil, err
-		}
-		receipts[i] = msg.(*pb.Receipt)
+		states[i] = data
 	}
-	block.Receipts = receipts
+	block.States = states
 
 	return core.Marshal(block)
 }
@@ -185,8 +174,8 @@ func (b *Block) GetTransactionHash() libcore.Hash {
 	return libcore.Hash(b.TransactionHash)
 }
 
-func (b *Block) GetReceiptHash() libcore.Hash {
-	return libcore.Hash(b.ReceiptHash)
+func (b *Block) GetStateHash() libcore.Hash {
+	return libcore.Hash(b.StateHash)
 }
 
 func (b *Block) GetTransactions() []libblock.TransactionWithData {
@@ -198,11 +187,11 @@ func (b *Block) GetTransactions() []libblock.TransactionWithData {
 	return ret
 }
 
-func (b *Block) GetReceipts() []libblock.Receipt {
-	l := len(b.Receipts)
-	ret := make([]libblock.Receipt, l)
+func (b *Block) GetStates() []libblock.State {
+	l := len(b.States)
+	ret := make([]libblock.State, l)
 	for i := 0; i < l; i++ {
-		ret[i] = b.Receipts[i]
+		ret[i] = b.States[i]
 	}
 	return ret
 }
