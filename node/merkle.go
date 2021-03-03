@@ -409,7 +409,7 @@ func (service *MerkleService) VerifyTransaction(t libblock.Transaction) (bool, e
 	return true, nil
 }
 
-func (service *MerkleService) addBalance(account libcore.Address, amount int64, isFromAccount bool) (libblock.State, error) {
+func (service *MerkleService) addBalance(account libcore.Address, amount int64, isFromAccount bool, sequence uint64) (libblock.State, error) {
 	address, err := account.GetAddress()
 	if err != nil {
 		return nil, err
@@ -422,9 +422,7 @@ func (service *MerkleService) addBalance(account libcore.Address, amount int64, 
 		}
 		info = s.(*block.AccountState)
 		info.Amount = info.Amount + amount
-		if isFromAccount {
-			info.Sequence = info.Sequence + 1
-		}
+		info.Sequence = sequence
 	} else {
 		info = &block.AccountState{
 			State: block.State{
@@ -446,19 +444,19 @@ func (service *MerkleService) ProcessTransaction(t libblock.Transaction) (libblo
 	}
 
 	gasAccount := service.config.GetGasAccount()
-	e1, err := service.addBalance(gasAccount, int64(tx.Gas), false)
+	e1, err := service.addBalance(gasAccount, int64(tx.Gas), false, 0)
 	if err != nil {
 		return nil, err
 	}
 
 	account := tx.Account
-	e2, err := service.addBalance(account, -(tx.Amount + int64(tx.Gas)), true)
+	e2, err := service.addBalance(account, -(tx.Amount + int64(tx.Gas)), true, t.GetIndex())
 	if err != nil {
 		return nil, err
 	}
 
 	destination := tx.Destination
-	e3, err := service.addBalance(destination, tx.Amount, false)
+	e3, err := service.addBalance(destination, tx.Amount, false, 0)
 	if err != nil {
 		return nil, err
 	}
