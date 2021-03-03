@@ -1,14 +1,12 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/tokentransfer/go-MerklePatriciaTree/mpt"
 
 	"github.com/tokentransfer/chain/block"
-	"github.com/tokentransfer/chain/core"
 	"github.com/tokentransfer/chain/crypto"
 	"github.com/tokentransfer/chain/store"
 
@@ -356,124 +354,6 @@ func (service *MerkleService) Cancel() error {
 		return err
 	}
 	return nil
-}
-
-func (service *MerkleService) GetAccount(address string) (*block.AccountState, error) {
-	state, err := service.GetStateByKey(address)
-	if err != nil {
-		return nil, err
-	}
-	info, ok := state.(*block.AccountState)
-	if !ok {
-		return nil, errors.New("error account state")
-	}
-	return info, nil
-}
-
-func (service *MerkleService) VerifyTransaction(t libblock.Transaction) (bool, error) {
-	cs := service.CryptoService
-	ok, err := cs.Verify(t)
-	if err != nil {
-		return false, err
-	}
-	if !ok {
-		return false, errors.New("error transaction")
-	}
-	tx, ok := t.(*block.Transaction)
-	if !ok {
-		return false, errors.New("error transaction")
-	}
-
-	account := tx.Account
-	address, err := account.GetAddress()
-	if err != nil {
-		return false, err
-	}
-	info, _ := service.GetAccount(address)
-
-	sequence := uint64(1)
-	amount := int64(0)
-	if info != nil {
-		sequence = info.Sequence + 1
-		amount = info.Amount
-	}
-
-	if tx.Sequence != sequence {
-		return false, fmt.Errorf("error sequence: %d != %d", tx.Sequence, sequence)
-	}
-
-	if (amount - tx.Amount - int64(tx.Gas)) < 0 {
-		return false, errors.New("insuffient amount")
-	}
-
-	return true, nil
-}
-
-func (service *MerkleService) addBalance(account libcore.Address, amount int64, isFromAccount bool, sequence uint64) (libblock.State, error) {
-	address, err := account.GetAddress()
-	if err != nil {
-		return nil, err
-	}
-	info, _ := service.GetAccount(address)
-	if info != nil {
-		s, err := block.CloneState(info)
-		if err != nil {
-			return nil, err
-		}
-		info = s.(*block.AccountState)
-		info.Amount = info.Amount + amount
-		info.Sequence = sequence
-	} else {
-		info = &block.AccountState{
-			State: block.State{
-				StateType: libblock.StateType(core.CORE_ACCOUNT_STATE),
-			},
-
-			Account:  account,
-			Sequence: uint64(0),
-			Amount:   amount,
-		}
-	}
-	return info, nil
-}
-
-func (service *MerkleService) ProcessTransaction(t libblock.Transaction) (libblock.TransactionWithData, error) {
-	tx, ok := t.(*block.Transaction)
-	if !ok {
-		return nil, errors.New("error transaction")
-	}
-
-	gasAccount := service.config.GetGasAccount()
-	e1, err := service.addBalance(gasAccount, int64(tx.Gas), false, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	account := tx.Account
-	e2, err := service.addBalance(account, -(tx.Amount + int64(tx.Gas)), true, t.GetIndex())
-	if err != nil {
-		return nil, err
-	}
-
-	destination := tx.Destination
-	e3, err := service.addBalance(destination, tx.Amount, false, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	r := &block.Receipt{
-		TransactionResult: 0,
-		States: []libblock.State{
-			e1,
-			e2,
-			e3,
-		},
-	}
-
-	return &block.TransactionWithData{
-		Transaction: t,
-		Receipt:     r,
-	}, nil
 }
 
 func getBlockKey(index uint64) string {
