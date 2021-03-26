@@ -2,10 +2,11 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"path"
 
-	"github.com/tokentransfer/interfaces/core"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/tokentransfer/interfaces/core"
 )
 
 type LevelService struct {
@@ -89,7 +90,6 @@ func (service *LevelService) Flush() error {
 
 func (service *LevelService) GetData(key []byte) ([]byte, error) {
 	db := service.db
-
 	bytes, err := db.Get(key, nil)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
@@ -167,6 +167,7 @@ func (service *LevelService) ListData(each func(key []byte, value []byte) error)
 }
 
 func serviceForLevelDB(dbPath string) *leveldb.DB {
+	fmt.Println("path", dbPath)
 	db, err := leveldb.OpenFile(dbPath, nil)
 	if err != nil {
 		panic(err)

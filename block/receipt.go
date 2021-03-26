@@ -12,6 +12,7 @@ import (
 
 type Receipt struct {
 	Hash              libcore.Hash
+	BlockIndex        uint64
 	TransactionIndex  uint32
 	TransactionResult libblock.TransactionResult
 
@@ -38,6 +39,7 @@ func (r *Receipt) UnmarshalBinary(data []byte) error {
 	receipt := msg.(*pb.Receipt)
 	r.TransactionResult = libblock.TransactionResult(receipt.TransactionResult)
 	r.TransactionIndex = receipt.TransactionIndex
+	r.BlockIndex = receipt.BlockIndex
 
 	list := receipt.GetStates()
 	l := len(list)
@@ -69,6 +71,7 @@ func (r *Receipt) MarshalBinary() ([]byte, error) {
 	receipt := &pb.Receipt{
 		TransactionResult: uint32(r.TransactionResult),
 		TransactionIndex:  r.TransactionIndex,
+		BlockIndex:        r.BlockIndex,
 		States:            states,
 	}
 	return core.Marshal(receipt)
@@ -98,6 +101,14 @@ func (r *Receipt) GetTransactionIndex() uint32 {
 
 func (r *Receipt) SetTransactionIndex(index uint32) {
 	r.TransactionIndex = index
+}
+
+func (r *Receipt) GetBlockIndex() uint64 {
+	return r.BlockIndex
+}
+
+func (r *Receipt) SetBlockIndex(index uint64) {
+	r.BlockIndex = index
 }
 
 func (r *Receipt) GetTransactionResult() libblock.TransactionResult {

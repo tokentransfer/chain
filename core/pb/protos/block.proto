@@ -6,12 +6,13 @@ option go_package = ".;pb";
 message Block {
     uint64 BlockIndex       = 1;
     bytes ParentHash        = 2;
-    bytes TransactionHash   = 3;
-    bytes StateHash       = 4;
-    int64 Timestamp         = 5;
+    bytes RootHash          = 3;
+    bytes TransactionHash   = 4;
+    bytes StateHash         = 5;
+    int64 Timestamp         = 6;
 
-    repeated TransactionWithData    Transactions    = 6;
-    repeated bytes            States                = 7;
+    repeated TransactionWithData    Transactions    = 7;
+    repeated bytes            States                = 8;
 }
 
 message Transaction {
@@ -19,7 +20,7 @@ message Transaction {
     
     bytes Account       = 2;
     uint64 Sequence     = 3;
-    int64 Amount       = 4;
+    string Amount       = 4;
     int64 Gas          = 5;
     bytes Destination   = 6;
     bytes Payload       = 7;
@@ -29,10 +30,11 @@ message Transaction {
 }
 
 message Receipt {
-    uint32 TransactionIndex  = 1;
-    uint32 TransactionResult = 2;
+    uint64 BlockIndex        = 1;
+    uint32 TransactionIndex  = 2;
+    uint32 TransactionResult = 3;
 
-    repeated bytes States   = 3;
+    repeated bytes States   = 4;
 }
 
 message AccountState {
@@ -41,7 +43,7 @@ message AccountState {
 
     bytes Account     = 3;
     uint64 Sequence   = 4;
-    int64 Amount      = 5;
+    string Amount      = 5;
 }
 
 message CurrencyState {
@@ -54,10 +56,18 @@ message CurrencyState {
 	string Name         = 5;
 	string Symbol       = 6; 
 	uint32 Decimals     = 7;
-	int64 TotalSupply   = 8;
+	string TotalSupply  = 8;
 }
 
 message TransactionWithData {
     Transaction Transaction   = 1;
     Receipt Receipt           = 2;
+    int64 Date                = 3;
+}
+
+message MessageKey {
+    bytes MessageKey    = 1;
+
+    bytes PublicKey     = 2;
+    bytes Signature     = 3;
 }

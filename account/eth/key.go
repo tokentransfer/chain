@@ -48,21 +48,15 @@ func (p *Key) MarshalText() ([]byte, error) {
 }
 
 func (p *Key) Sign(hash libcore.Hash, msg []byte) (libcore.Signature, error) {
-	hashBytes := []byte(hash)
-	r, s, err := ecdsa.Sign(rand.Reader, p.privateKey.PrivateKey, hashBytes)
+	return p.privateKey.Sign(hash, msg)
+}
+
+func (p *Key) Verify(hash libcore.Hash, msg []byte, signature libcore.Signature) (bool, error) {
+	publicKey, err := p.GetPublic()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	rt, err := r.MarshalText()
-	if err != nil {
-		return nil, err
-	}
-	st, err := s.MarshalText()
-	if err != nil {
-		return nil, err
-	}
-	str := strings.Join([]string{string(rt), string(st)}, ":")
-	return libcore.Signature(str), nil
+	return publicKey.Verify(hash, msg, signature)
 }
 
 func (p *Key) GetPrivate() (libaccount.PrivateKey, error) {
@@ -121,10 +115,7 @@ func (p *Private) MarshalBinary() ([]byte, error) {
 }
 
 func (p *Private) UnmarshalText(b []byte) error {
-	data, err := hex.DecodeString(string(b))
-	if err != nil {
-		return err
-	}
+	data := common.FromHex(string(b))
 	return p.UnmarshalBinary(data)
 }
 
@@ -135,6 +126,24 @@ func (p *Private) MarshalText() ([]byte, error) {
 	}
 	s := hex.EncodeToString(data)
 	return []byte(s), nil
+}
+
+func (p *Private) Sign(hash libcore.Hash, msg []byte) (libcore.Signature, error) {
+	hashBytes := []byte(hash)
+	r, s, err := ecdsa.Sign(rand.Reader, p.PrivateKey, hashBytes)
+	if err != nil {
+		return nil, err
+	}
+	rt, err := r.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	st, err := s.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	str := strings.Join([]string{string(rt), string(st)}, ":")
+	return libcore.Signature(str), nil
 }
 
 func (p *Private) GeneratePublic() (libaccount.PublicKey, error) {
@@ -162,6 +171,20 @@ func (p *Public) UnmarshalBinary(data []byte) error {
 
 func (p *Public) MarshalBinary() ([]byte, error) {
 	return crypto.FromECDSAPub(p.PublicKey), nil
+}
+
+func (p *Public) UnmarshalText(b []byte) error {
+	data := common.FromHex(string(b))
+	return p.UnmarshalBinary(data)
+}
+
+func (p *Public) MarshalText() ([]byte, error) {
+	data, err := p.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	s := hex.EncodeToString(data)
+	return []byte(s), nil
 }
 
 func (p *Public) Verify(hash libcore.Hash, msg []byte, signature libcore.Signature) (bool, error) {
@@ -219,7 +242,7 @@ func (a Address) MarshalBinary() ([]byte, error) {
 	return a[:], nil
 }
 
-func (a Address) GetAddress() (string, error) {
-	b, err := a.MarshalText()
-	return string(b), err
+func (a Address) String() string {
+	b, _ := a.MarshalText()
+	return string(b)
 }

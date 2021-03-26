@@ -1,7 +1,9 @@
 package block
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/tokentransfer/chain/account"
@@ -19,7 +21,7 @@ type Transaction struct {
 
 	Account     libcore.Address
 	Sequence    uint64
-	Amount      int64
+	Amount      core.Amount
 	Gas         int64
 	Destination libcore.Address
 	Payload     libcore.Bytes
@@ -40,9 +42,9 @@ func (tx *Transaction) SetHash(h libcore.Hash) {
 }
 
 func byteToAddress(b []byte) (libcore.Address, error) {
-	a := account.NewAddress()
-	err := a.UnmarshalBinary(b)
+	_, a, err := account.NewAccountFromBytes(b)
 	if err != nil {
+		fmt.Println("bytes", len(b), hex.EncodeToString(b))
 		return nil, err
 	}
 	return a, nil
@@ -67,8 +69,13 @@ func (tx *Transaction) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
+	a, err := core.NewAmount(t.Amount)
+	if err != nil {
+		return err
+	}
+
 	tx.Sequence = t.Sequence
-	tx.Amount = t.Amount
+	tx.Amount = *a
 	tx.Gas = t.Gas
 
 	tx.Destination, err = byteToAddress(t.Destination)
@@ -102,7 +109,7 @@ func (tx *Transaction) MarshalBinary() ([]byte, error) {
 
 		Account:     fromData,
 		Sequence:    tx.Sequence,
-		Amount:      tx.Amount,
+		Amount:      tx.Amount.String(),
 		Gas:         tx.Gas,
 		Destination: toData,
 		Payload:     tx.Payload,
@@ -113,24 +120,23 @@ func (tx *Transaction) MarshalBinary() ([]byte, error) {
 }
 
 func (tx *Transaction) Raw(ignoreSigningFields bool) ([]byte, error) {
-	fromData, err := addressToByte(tx.Account)
-	if err != nil {
-		return nil, err
-	}
-	toData, err := addressToByte(tx.Destination)
-	if err != nil {
-		return nil, err
-	}
-
 	if ignoreSigningFields {
+		fromAccount, err := addressToByte(tx.Account)
+		if err != nil {
+			return nil, err
+		}
+		toAccount, err := addressToByte(tx.Destination)
+		if err != nil {
+			return nil, err
+		}
 		t := &pb.Transaction{
 			TransactionType: uint32(tx.TransactionType),
 
-			Account:     fromData,
+			Account:     fromAccount,
 			Sequence:    tx.Sequence,
-			Amount:      tx.Amount,
+			Amount:      tx.Amount.String(),
 			Gas:         tx.Gas,
-			Destination: toData,
+			Destination: toAccount,
 			Payload:     tx.Payload,
 			PublicKey:   []byte(tx.PublicKey),
 		}
@@ -164,14 +170,12 @@ func (tx *Transaction) SetSignature(s libcore.Signature) {
 }
 
 type TransactionWithData struct {
+	libblock.Transaction
+
+	Receipt libblock.Receipt
+
+	Date int64
 	Hash libcore.Hash
-
-	Transaction libblock.Transaction
-	Receipt     libblock.Receipt
-}
-
-func (txWithData *TransactionWithData) GetHash() libcore.Hash {
-	return txWithData.Hash
 }
 
 func (txWithData *TransactionWithData) SetHash(h libcore.Hash) {
@@ -218,6 +222,7 @@ func (txWithData *TransactionWithData) UnmarshalBinary(data []byte) error {
 
 	txWithData.Transaction = tx
 	txWithData.Receipt = receipt
+	txWithData.Date = td.Date
 	return nil
 }
 
@@ -245,6 +250,7 @@ func (txWithData *TransactionWithData) MarshalBinary() ([]byte, error) {
 	td := &pb.TransactionWithData{
 		Transaction: tx,
 		Receipt:     receipt,
+		Date:        txWithData.Date,
 	}
 	data, err := core.Marshal(td)
 	if err != nil {
@@ -277,10 +283,29 @@ func (txWithData *TransactionWithData) Raw(ignoreSigningFields bool) ([]byte, er
 	td := &pb.TransactionWithData{
 		Transaction: tx,
 		Receipt:     receipt,
+		Date:        txWithData.Date,
 	}
 	data, err := core.Marshal(td)
 	if err != nil {
 		return nil, err
 	}
 	return data, nil
+}
+
+func ReadTransaction(data []byte) (libblock.Transaction, error) {
+	if len(data) == 0 {
+		return nil, errors.New("error transaction")
+	}
+	meta := core.GetMeta(data)
+	switch meta {
+	case core.CORE_TRANSACTION:
+		tx := &Transaction{}
+		err := tx.UnmarshalBinary(data)
+		if err != nil {
+			return nil, err
+		}
+		return tx, nil
+	default:
+		return nil, errors.New("error data")
+	}
 }

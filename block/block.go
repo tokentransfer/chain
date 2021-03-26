@@ -16,6 +16,7 @@ type Block struct {
 
 	BlockIndex      uint64
 	ParentHash      libcore.Hash
+	RootHash        libcore.Hash
 	TransactionHash libcore.Hash
 	StateHash       libcore.Hash
 	Timestamp       int64
@@ -48,6 +49,7 @@ func (b *Block) UnmarshalBinary(data []byte) error {
 	block := msg.(*pb.Block)
 	b.BlockIndex = block.BlockIndex
 	b.ParentHash = libcore.Hash(block.ParentHash)
+	b.RootHash = libcore.Hash(block.RootHash)
 	b.TransactionHash = libcore.Hash(block.TransactionHash)
 	b.StateHash = libcore.Hash(block.StateHash)
 	b.Timestamp = block.Timestamp
@@ -90,6 +92,7 @@ func (b *Block) MarshalBinary() ([]byte, error) {
 	block := &pb.Block{
 		BlockIndex:      b.BlockIndex,
 		ParentHash:      []byte(b.ParentHash),
+		RootHash:        []byte(b.RootHash),
 		TransactionHash: []byte(b.TransactionHash),
 		StateHash:       []byte(b.StateHash),
 		Timestamp:       b.Timestamp,
@@ -130,6 +133,7 @@ func (b *Block) Raw(ignoreSigningFields bool) ([]byte, error) {
 	block := &pb.Block{
 		BlockIndex:      b.BlockIndex,
 		ParentHash:      []byte(b.ParentHash),
+		RootHash:        []byte(b.RootHash),
 		TransactionHash: []byte(b.TransactionHash),
 		StateHash:       []byte(b.StateHash),
 		Timestamp:       b.Timestamp,
@@ -170,6 +174,10 @@ func (b *Block) GetParentHash() libcore.Hash {
 	return libcore.Hash(b.ParentHash)
 }
 
+func (b *Block) GetRootHash() libcore.Hash {
+	return libcore.Hash(b.RootHash)
+}
+
 func (b *Block) GetTransactionHash() libcore.Hash {
 	return libcore.Hash(b.TransactionHash)
 }
@@ -194,4 +202,8 @@ func (b *Block) GetStates() []libblock.State {
 		ret[i] = b.States[i]
 	}
 	return ret
+}
+
+func (b *Block) GetTime() int64 {
+	return b.Timestamp
 }

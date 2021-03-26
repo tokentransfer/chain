@@ -14,11 +14,14 @@ const (
 	CORE_TRANSACTION           = byte(101)
 	CORE_RECEIPT               = byte(102)
 	CORE_TRANSACTION_WITH_DATA = byte(103)
+	CORE_MESSAGE               = byte(104)
 
 	// CORE_STATE         = byte(110)
 	CORE_ACCOUNT_STATE  = byte(111)
 	CORE_CURRENCY_STATE = byte(112)
 )
+
+var SYSTEM_CODE = "TEST"
 
 func GetInfo(data []byte) string {
 	if len(data) > 0 {
@@ -32,6 +35,8 @@ func GetInfo(data []byte) string {
 			return "receipt"
 		case CORE_TRANSACTION_WITH_DATA:
 			return "transaction_with_data"
+		case CORE_MESSAGE:
+			return "message"
 
 		case CORE_ACCOUNT_STATE:
 			return "account_state"
@@ -67,6 +72,8 @@ func Marshal(message proto.Message) ([]byte, error) {
 		meta = CORE_RECEIPT
 	case *pb.TransactionWithData:
 		meta = CORE_TRANSACTION_WITH_DATA
+	case *pb.MessageKey:
+		meta = CORE_MESSAGE
 
 	case *pb.AccountState:
 		meta = CORE_ACCOUNT_STATE
@@ -84,36 +91,48 @@ func Marshal(message proto.Message) ([]byte, error) {
 	return append([]byte{meta}, data...), nil
 }
 
+func GetMeta(data []byte) byte {
+	if len(data) > 0 {
+		return data[0]
+	}
+	return 0
+}
+
 func Unmarshal(data []byte) (byte, proto.Message, error) {
-	meta := data[0]
-	bs := data[1:]
+	if len(data) > 0 {
+		meta := data[0]
+		bs := data[1:]
 
-	var msg proto.Message
-	switch meta {
-	case CORE_BLOCK:
-		msg = &pb.Block{}
-	case CORE_TRANSACTION:
-		msg = &pb.Transaction{}
-	case CORE_RECEIPT:
-		msg = &pb.Receipt{}
-	case CORE_TRANSACTION_WITH_DATA:
-		msg = &pb.TransactionWithData{}
+		var msg proto.Message
+		switch meta {
+		case CORE_BLOCK:
+			msg = &pb.Block{}
+		case CORE_TRANSACTION:
+			msg = &pb.Transaction{}
+		case CORE_RECEIPT:
+			msg = &pb.Receipt{}
+		case CORE_TRANSACTION_WITH_DATA:
+			msg = &pb.TransactionWithData{}
+		case CORE_MESSAGE:
+			msg = &pb.MessageKey{}
 
-	case CORE_ACCOUNT_STATE:
-		msg = &pb.AccountState{}
-	case CORE_CURRENCY_STATE:
-		msg = &pb.CurrencyState{}
+		case CORE_ACCOUNT_STATE:
+			msg = &pb.AccountState{}
+		case CORE_CURRENCY_STATE:
+			msg = &pb.CurrencyState{}
 
-	default:
-		err := errors.New("error data format")
-		return 0, nil, err
+		default:
+			err := errors.New("error data format")
+			return 0, nil, err
+		}
+
+		err := proto.Unmarshal(bs, msg)
+		if err != nil {
+			return 0, nil, err
+		}
+		return meta, msg, nil
 	}
-
-	err := proto.Unmarshal(bs, msg)
-	if err != nil {
-		return 0, nil, err
-	}
-	return meta, msg, nil
+	return 0, nil, errors.New("null data")
 }
 
 func WriteBytes(w io.Writer, b []byte) error {

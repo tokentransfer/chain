@@ -2,13 +2,14 @@ package jingtum
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec"
 
-	"github.com/tokentransfer/interfaces/account"
-	"github.com/tokentransfer/interfaces/core"
+	libaccount "github.com/tokentransfer/interfaces/account"
+	libcore "github.com/tokentransfer/interfaces/core"
 )
 
 const (
@@ -54,21 +55,23 @@ func (p *Key) MarshalText() ([]byte, error) {
 	return p.privateKey.MarshalText()
 }
 
-func (p *Key) Sign(hash core.Hash, msg []byte) (core.Signature, error) {
-	hashBytes := []byte(hash)
-	priv := p.privateKey.generateKey(uint32(0))
-	sig, err := priv.Sign(hashBytes)
-	if err != nil {
-		return nil, err
-	}
-	return core.Signature(sig.Serialize()), nil
+func (p *Key) Sign(hash libcore.Hash, msg []byte) (libcore.Signature, error) {
+	return p.privateKey.Sign(hash, msg)
 }
 
-func (p *Key) GetPrivate() (account.PrivateKey, error) {
+func (p *Key) Verify(hash libcore.Hash, msg []byte, signature libcore.Signature) (bool, error) {
+	publicKey, err := p.GetPublic()
+	if err != nil {
+		return false, err
+	}
+	return publicKey.Verify(hash, msg, signature)
+}
+
+func (p *Key) GetPrivate() (libaccount.PrivateKey, error) {
 	return &p.privateKey, nil
 }
 
-func (p *Key) GetPublic() (account.PublicKey, error) {
+func (p *Key) GetPublic() (libaccount.PublicKey, error) {
 	if p.publicKey == nil {
 		pk, err := p.privateKey.GeneratePublic()
 		if err != nil {
@@ -79,7 +82,7 @@ func (p *Key) GetPublic() (account.PublicKey, error) {
 	return p.publicKey, nil
 }
 
-func (p *Key) GetAddress() (core.Address, error) {
+func (p *Key) GetAddress() (libcore.Address, error) {
 	_, err := p.GetPublic()
 	if err != nil {
 		return nil, err
@@ -145,6 +148,16 @@ func (p *Private) MarshalText() ([]byte, error) {
 	return []byte(s), nil
 }
 
+func (p *Private) Sign(hash libcore.Hash, msg []byte) (libcore.Signature, error) {
+	hashBytes := []byte(hash)
+	priv := p.generateKey(uint32(0))
+	sig, err := priv.Sign(hashBytes)
+	if err != nil {
+		return nil, err
+	}
+	return libcore.Signature(sig.Serialize()), nil
+}
+
 func (p *Private) generateKey(sequence uint32) *btcec.PrivateKey {
 	seed := make([]byte, btcec.PubKeyBytesLenCompressed+4)
 	copy(seed, p.PubKey().SerializeCompressed())
@@ -155,7 +168,7 @@ func (p *Private) generateKey(sequence uint32) *btcec.PrivateKey {
 	return key
 }
 
-func (p *Private) GeneratePublic() (account.PublicKey, error) {
+func (p *Private) GeneratePublic() (libaccount.PublicKey, error) {
 	priv := p.generateKey(uint32(0))
 	return &Public{priv.PubKey()}, nil
 }
@@ -182,7 +195,24 @@ func (p *Public) MarshalBinary() ([]byte, error) {
 	return p.SerializeCompressed(), nil
 }
 
-func (p *Public) Verify(hash core.Hash, msg []byte, signature core.Signature) (bool, error) {
+func (p *Public) UnmarshalText(b []byte) error {
+	data, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	return p.UnmarshalBinary(data)
+}
+
+func (p *Public) MarshalText() ([]byte, error) {
+	data, err := p.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	s := hex.EncodeToString(data)
+	return []byte(s), nil
+}
+
+func (p *Public) Verify(hash libcore.Hash, msg []byte, signature libcore.Signature) (bool, error) {
 	signatureBytes := []byte(signature)
 	sig, err := btcec.ParseDERSignature(signatureBytes, btcec.S256())
 	if err != nil {
@@ -192,7 +222,7 @@ func (p *Public) Verify(hash core.Hash, msg []byte, signature core.Signature) (b
 	return sig.Verify(hashBytes, p.PublicKey), nil
 }
 
-func (p *Public) GenerateAddress() (core.Address, error) {
+func (p *Public) GenerateAddress() (libcore.Address, error) {
 	data, err := p.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -237,7 +267,7 @@ func (a Address) MarshalBinary() ([]byte, error) {
 	return a[:], nil
 }
 
-func (a Address) GetAddress() (string, error) {
-	b, err := a.MarshalText()
-	return string(b), err
+func (a Address) String() string {
+	b, _ := a.MarshalText()
+	return string(b)
 }

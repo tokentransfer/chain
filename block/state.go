@@ -12,7 +12,10 @@ import (
 )
 
 type State struct {
-	Hash       libcore.Hash
+	Hash libcore.Hash
+
+	Account    libcore.Address
+	Sequence   uint64
 	BlockIndex uint64
 
 	StateType libblock.StateType
@@ -38,24 +41,22 @@ func (s *State) SetBlockIndex(index uint64) {
 	s.BlockIndex = index
 }
 
-type AccountState struct {
-	State
-
-	Account  libcore.Address
-	Sequence uint64
-	Amount   int64
+func (s *State) GetAccount() libcore.Address {
+	return s.Account
 }
 
-func (s *AccountState) GetIndex() uint64 {
+func (s *State) GetIndex() uint64 {
 	return s.Sequence
 }
 
+type AccountState struct {
+	State
+
+	Amount core.Amount
+}
+
 func (s *AccountState) GetStateKey() string {
-	a, err := s.Account.GetAddress()
-	if err != nil {
-		return ""
-	}
-	return a
+	return core.GetAccountKey(s.Account, s.Amount.Currency, s.Amount.Issuer, "-")
 }
 
 func (s *AccountState) UnmarshalBinary(data []byte) error {
@@ -69,8 +70,12 @@ func (s *AccountState) UnmarshalBinary(data []byte) error {
 
 	state := msg.(*pb.AccountState)
 
-	account := account.NewAddress()
-	err = account.UnmarshalBinary(state.Account)
+	_, account, err := account.NewAccountFromBytes(state.Account[:])
+	if err != nil {
+		return err
+	}
+
+	a, err := core.NewAmount(state.Amount)
 	if err != nil {
 		return err
 	}
@@ -79,7 +84,7 @@ func (s *AccountState) UnmarshalBinary(data []byte) error {
 	s.BlockIndex = state.BlockIndex
 	s.Account = account
 	s.Sequence = state.Sequence
-	s.Amount = state.Amount
+	s.Amount = *a
 	return nil
 }
 
@@ -94,7 +99,7 @@ func (s *AccountState) MarshalBinary() ([]byte, error) {
 		BlockIndex: s.BlockIndex,
 		Account:    a,
 		Sequence:   s.Sequence,
-		Amount:     s.Amount,
+		Amount:     s.Amount.String(),
 	})
 }
 
@@ -108,28 +113,21 @@ func (s *AccountState) Raw(ignoreSigningFields bool) ([]byte, error) {
 		StateType: uint32(core.CORE_ACCOUNT_STATE),
 		Account:   a,
 		Sequence:  s.Sequence,
-		Amount:    s.Amount,
+		Amount:    s.Amount.String(),
 	})
 }
 
 type CurrencyState struct {
 	State
 
-	Account  libcore.Address
-	Sequence uint64
-
 	Name        string
 	Symbol      string
 	Decimals    uint32
-	TotalSupply int64
-}
-
-func (s *CurrencyState) GetIndex() uint64 {
-	return s.Sequence
+	TotalSupply core.Amount
 }
 
 func (s *CurrencyState) GetStateKey() string {
-	return s.Symbol
+	return core.GetCurrencyKey(s.TotalSupply.Currency, s.TotalSupply.Issuer, "-")
 }
 
 func (s *CurrencyState) UnmarshalBinary(data []byte) error {
@@ -142,8 +140,12 @@ func (s *CurrencyState) UnmarshalBinary(data []byte) error {
 	}
 	state := msg.(*pb.CurrencyState)
 
-	issuer := account.NewAddress()
-	err = issuer.UnmarshalBinary(state.Account)
+	_, issuer, err := account.NewAccountFromBytes(state.Account[:])
+	if err != nil {
+		return err
+	}
+
+	a, err := core.NewAmount(state.TotalSupply)
 	if err != nil {
 		return err
 	}
@@ -155,7 +157,7 @@ func (s *CurrencyState) UnmarshalBinary(data []byte) error {
 	s.Name = state.Name
 	s.Symbol = state.Symbol
 	s.Decimals = state.Decimals
-	s.TotalSupply = state.TotalSupply
+	s.TotalSupply = *a
 
 	return nil
 }
@@ -174,7 +176,7 @@ func (s *CurrencyState) MarshalBinary() ([]byte, error) {
 		Name:        s.Name,
 		Symbol:      s.Symbol,
 		Decimals:    s.Decimals,
-		TotalSupply: s.TotalSupply,
+		TotalSupply: s.TotalSupply.String(),
 	})
 }
 
@@ -191,7 +193,7 @@ func (s *CurrencyState) Raw(ignoreSigningFields bool) ([]byte, error) {
 		Name:        s.Name,
 		Symbol:      s.Symbol,
 		Decimals:    s.Decimals,
-		TotalSupply: s.TotalSupply,
+		TotalSupply: s.TotalSupply.String(),
 	})
 }
 
@@ -199,7 +201,7 @@ func ReadState(data []byte) (libblock.State, error) {
 	if len(data) == 0 {
 		return nil, errors.New("error entry")
 	}
-	meta := data[0]
+	meta := core.GetMeta(data)
 	switch meta {
 	case core.CORE_ACCOUNT_STATE:
 		s := &AccountState{}

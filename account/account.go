@@ -7,18 +7,69 @@ import (
 	libcore "github.com/tokentransfer/interfaces/core"
 )
 
-func GenerateFamilySeed(password string) (libaccount.Key, error) {
-	return eth.GenerateFamilySeed(password)
+const (
+	ETH     libaccount.KeyType = 0
+	JINGTUM libaccount.KeyType = 1
+)
+
+func GenerateFamilySeed(password string) (libaccount.KeyType, libaccount.Key, error) {
+	key, err := eth.GenerateFamilySeed(password)
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, key, nil
 }
 
-func NewKey() libaccount.Key {
-	return &eth.Key{}
+func NewKeyFromSecret(secret string) (libaccount.KeyType, libaccount.Key, error) {
+	key := &eth.Key{}
+	err := key.UnmarshalText([]byte(secret))
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, key, nil
 }
 
-func NewPublicKey() libaccount.PublicKey {
-	return &eth.Public{}
+func NewKeyFromBytes(data []byte) (libaccount.KeyType, libaccount.Key, error) {
+	key := &eth.Key{}
+	err := key.UnmarshalBinary(data)
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, key, nil
 }
 
-func NewAddress() libcore.Address {
-	return &eth.Address{}
+func NewPublicFromHex(s string) (libaccount.KeyType, libaccount.PublicKey, error) {
+	key := &eth.Public{}
+	err := key.UnmarshalText([]byte(s))
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, key, nil
+}
+
+func NewPublicFromBytes(data []byte) (libaccount.KeyType, libaccount.PublicKey, error) {
+	key := &eth.Public{}
+	err := key.UnmarshalBinary(data)
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, key, nil
+}
+
+func NewAccountFromAddress(address string) (libaccount.KeyType, libcore.Address, error) {
+	a := &eth.Address{}
+	err := a.UnmarshalText([]byte(address))
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, a, nil
+}
+
+func NewAccountFromBytes(data []byte) (libaccount.KeyType, libcore.Address, error) {
+	a := &eth.Address{}
+	err := a.UnmarshalBinary(data)
+	if err != nil {
+		return 0, nil, err
+	}
+	return ETH, a, nil
 }

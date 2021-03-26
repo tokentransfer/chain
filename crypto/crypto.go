@@ -91,8 +91,7 @@ func (service *CryptoService) Sign(p libaccount.Key, s libcrypto.Signable) error
 func (service *CryptoService) Verify(s libcrypto.Signable) (bool, error) {
 	publicBytes := []byte(s.GetPublicKey())
 
-	p := account.NewPublicKey()
-	err := p.UnmarshalBinary(publicBytes)
+	_, p, err := account.NewPublicFromBytes(publicBytes)
 	if err != nil {
 		return false, err
 	}

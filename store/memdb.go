@@ -9,8 +9,9 @@ import (
 )
 
 type MemoryService struct {
-	name string
-	db   *sync.Map
+	Name string
+
+	db *sync.Map
 }
 
 func (service *MemoryService) Close() error {
