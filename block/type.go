@@ -1,10 +1,13 @@
 package block
 
 import (
+	"github.com/tokentransfer/chain/account"
 	"github.com/tokentransfer/chain/core"
 
 	libblock "github.com/tokentransfer/interfaces/block"
 )
+
+var as = &account.AccountService{}
 
 // TransactionType
 const (

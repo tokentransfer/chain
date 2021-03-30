@@ -12,6 +12,8 @@ import (
 	libcrypto "github.com/tokentransfer/interfaces/crypto"
 )
 
+var as = &account.AccountService{}
+
 type CryptoService struct {
 }
 
@@ -91,7 +93,7 @@ func (service *CryptoService) Sign(p libaccount.Key, s libcrypto.Signable) error
 func (service *CryptoService) Verify(s libcrypto.Signable) (bool, error) {
 	publicBytes := []byte(s.GetPublicKey())
 
-	_, p, err := account.NewPublicFromBytes(publicBytes)
+	_, p, err := as.NewPublicFromBytes(publicBytes)
 	if err != nil {
 		return false, err
 	}

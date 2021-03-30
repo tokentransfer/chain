@@ -25,6 +25,7 @@ const (
 )
 
 var config libcore.Config
+var as = &account.AccountService{}
 
 func Init(c libcore.Config) {
 	config = c
@@ -181,7 +182,7 @@ func NewAmount(v interface{}) (*Amount, error) {
 			}
 		}
 		if len(parts) > 2 {
-			if _, issuer, err := account.NewAccountFromAddress(parts[2]); err != nil {
+			if _, issuer, err := as.NewAccountFromAddress(parts[2]); err != nil {
 				return nil, err
 			} else {
 				amount.Issuer = issuer

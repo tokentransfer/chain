@@ -2,7 +2,6 @@ package store
 
 import (
 	"errors"
-	"fmt"
 	"path"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -167,7 +166,6 @@ func (service *LevelService) ListData(each func(key []byte, value []byte) error)
 }
 
 func serviceForLevelDB(dbPath string) *leveldb.DB {
-	fmt.Println("path", dbPath)
 	db, err := leveldb.OpenFile(dbPath, nil)
 	if err != nil {
 		panic(err)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/tokentransfer/chain/account"
 	"github.com/tokentransfer/chain/core"
 	"github.com/tokentransfer/chain/core/pb"
 
@@ -42,7 +41,7 @@ func (tx *Transaction) SetHash(h libcore.Hash) {
 }
 
 func byteToAddress(b []byte) (libcore.Address, error) {
-	_, a, err := account.NewAccountFromBytes(b)
+	_, a, err := as.NewAccountFromBytes(b)
 	if err != nil {
 		fmt.Println("bytes", len(b), hex.EncodeToString(b))
 		return nil, err

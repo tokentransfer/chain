@@ -3,7 +3,6 @@ package block
 import (
 	"errors"
 
-	"github.com/tokentransfer/chain/account"
 	"github.com/tokentransfer/chain/core"
 	"github.com/tokentransfer/chain/core/pb"
 
@@ -70,7 +69,7 @@ func (s *AccountState) UnmarshalBinary(data []byte) error {
 
 	state := msg.(*pb.AccountState)
 
-	_, account, err := account.NewAccountFromBytes(state.Account[:])
+	_, account, err := as.NewAccountFromBytes(state.Account[:])
 	if err != nil {
 		return err
 	}
@@ -140,7 +139,7 @@ func (s *CurrencyState) UnmarshalBinary(data []byte) error {
 	}
 	state := msg.(*pb.CurrencyState)
 
-	_, issuer, err := account.NewAccountFromBytes(state.Account[:])
+	_, issuer, err := as.NewAccountFromBytes(state.Account[:])
 	if err != nil {
 		return err
 	}

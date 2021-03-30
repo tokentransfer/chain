@@ -1,7 +1,6 @@
 package block
 
 import (
-	"github.com/tokentransfer/chain/account"
 	"github.com/tokentransfer/chain/core"
 	"github.com/tokentransfer/chain/core/pb"
 
@@ -84,7 +83,7 @@ func (tx *Message) Raw(ignoreSigningFields bool) ([]byte, error) {
 func (tx *Message) GetAccount() libcore.Address {
 	publicBytes := []byte(tx.GetPublicKey())
 
-	_, p, err := account.NewPublicFromBytes(publicBytes)
+	_, p, err := as.NewPublicFromBytes(publicBytes)
 	if err != nil {
 		return nil
 	}
