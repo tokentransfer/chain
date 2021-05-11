@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/syndtr/goleveldb/leveldb"
+
 	"github.com/tokentransfer/interfaces/core"
 )
 
